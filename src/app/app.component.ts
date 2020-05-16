@@ -1,6 +1,7 @@
 import { Component } from "@angular/core";
-import { Board } from "./models/board";
+import { Board, Player } from "./models/board";
 import { PathData } from "./models/data";
+import { DiceComponent } from "./dice/dice.component";
 
 @Component({
   selector: "app-root",
@@ -13,20 +14,20 @@ export class AppComponent {
   board = null;
   coins = [];
   activePlayer = null;
+  players = null;
 
-  player1;
-  player2;
-  player3;
-  player4;
+  playerCoins = [];
 
   ngOnInit() {
-    this.board = new Board();
-    this.player1 = this.board.players[0];
-    this.player2 = this.board.players[1];
-    this.player3 = this.board.players[2];
-    this.player4 = this.board.players[3];
+    this.players = [
+      new Player(1, "red"),
+      new Player(2, "blue"),
+      new Player(3, "green"),
+      new Player(4, "yellow"),
+    ];
+    this.board = new Board(this.players);
 
-    this.activePlayer = this.player1;
+    this.activePlayer = this.players[0];
   }
 
   ngAfterViewInit() {
@@ -34,50 +35,87 @@ export class AppComponent {
 
     setTimeout(() => {
       parent.coins = [
-        ...parent.player1.coins,
-        ...parent.player2.coins,
-        ...parent.player3.coins,
-        ...parent.player4.coins,
+        ...this.players[0].coins,
+        ...this.players[1].coins,
+        ...this.players[2].coins,
+        ...this.players[3].coins,
       ];
+
+      parent.playerCoins.push(parent.players[0].coins);
+      parent.playerCoins.push(parent.players[1].coins);
+      parent.playerCoins.push(parent.players[2].coins);
+      parent.playerCoins.push(parent.players[3].coins);
     });
-
-    console.log(JSON.stringify(this.coins));
-  }
-
-  drawPath(i, j) {
-    var data = this.activePlayer.playerPath.find(function (ele) {
-      return ele.x === i && ele.y === j;
-    });
-
-    if (data) {
-      return true;
-    }
   }
 
   rollDice() {
-    let num = this.randomNumberGenerator(1, 6);
-    this.board.dice = num;
+    if (this.board.isDiceActive) {
+      this.board.dice = this.randomNumberGenerator(1, 6);
+      this.board.isDiceActive = false;
 
-    if (
-      this.activePlayer.activeCoin.currentPosition === -1 &&
-      this.board.dice === 6
-    ) {
-      this.activePlayer.activeCoin.currentPosition = 0;
+      var d = this.activePlayer.coins.filter(
+        (tempCoin) => tempCoin.currentPosition != 0
+      );
+
+      // Activate player it will get deactived once player moves
+      this.activePlayer.active = true;
+
+      // if no choices then move to next player
+      if (d.length <= 0 && this.board.dice !== 6) {
+        setTimeout(() => {
+          this.activePlayer.active = false;
+          this.changePlayer();
+        }, 1000);
+      }
+    }
+  }
+
+  onCoinClick(coin) {
+    // if player in not active then return
+    if (!this.activePlayer.active) {
+      return;
+    }
+
+    // if clicked coin is player coin the move the slected coin
+    this.activePlayer.coins.forEach((ele) => {
+      if (coin.id == ele.id) {
+        this.activePlayer.activeCoin = coin;
+
+        if (coin.currentPosition === 0 && this.board.dice === 6) {
+          this.activePlayer.move();
+          this.activePlayer.active = false;
+          this.board.isDiceActive = true;
+        } else if (coin.currentPosition !== 0) {
+          this.move(coin, () => {
+            this.changePlayer();
+            // this.getCoinPosition();
+          });
+        }
+      }
+    });
+  }
+
+  move(coin, cb) {
+    this.activePlayer.active = false;
+    if (coin.currentPosition === 0 && this.board.dice === 6) {
+      this.activePlayer.move();
+      this.activePlayer.active = false;
+      this.board.isDiceActive = true;
+      return;
     }
 
     let theLoop: (i: number, delay?) => void = (i: number, delay = 100) => {
       setTimeout(() => {
         this.activePlayer.move();
+
         if (--i) {
           theLoop(i);
+        } else {
+          cb();
         }
       }, delay);
     };
-    theLoop(num);
-
-    this.changePlayer();
-
-    this.getCoinPosition();
+    theLoop(this.board.dice);
   }
 
   changePlayer() {
@@ -86,6 +124,7 @@ export class AppComponent {
     } else {
       this.activePlayer = this.board.players[this.activePlayer.id];
     }
+    this.board.isDiceActive = true;
   }
 
   killAnimation() {
@@ -139,25 +178,12 @@ export class AppComponent {
   }
 
   drawHomes(x, y) {
-    // var home1 = this.activePlayer.playerHome.find(function (ele) {
-    //   return ele.x === x && ele.y === y;
-    // });
-
     var path = this.activePlayer.visitedBoxs.find(function (ele) {
       return ele.x === x && ele.y === y;
     });
-
-    // var coin = this.activePlayer.coins.find((ele) => {
-    //   return ele.x === x && ele.y === y;
-    // });
-
     var coin =
       this.activePlayer.activeCoin.x === x &&
       this.activePlayer.activeCoin.y === y;
-
-    // if (home1 && !coin) {
-    //   return "home1";
-    // } else
 
     if (path && !coin) {
       return this.activePlayer.color;

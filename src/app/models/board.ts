@@ -2,7 +2,12 @@ import { PathData } from "./data";
 
 export class Board {
   dice = 0;
+  isDiceActive = true;
   pathData = new PathData();
+
+  constructor(_players: any) {
+    this.players = _players;
+  }
 
   xplane: number[] = Array(13)
     .fill(13)
@@ -19,16 +24,13 @@ export class Board {
   ];
 }
 
-class Player {
+export class Player {
   id: number;
-  path: any[];
   coins: Coin[] = null;
   playerPath = null;
-  playerHome = null;
   pathData = null;
-
+  active = false;
   activeCoin: Coin;
-
   color = null;
   visitedBoxs: any[] = [];
 
@@ -37,7 +39,6 @@ class Player {
     this.id = type;
     this.color = color;
     this.playerPath = this.getPath(type);
-    this.playerHome = this.pathData.homes[type];
     this.coins = this.getCoins(type, color);
     this.activeCoin = this.coins[0];
   }
@@ -49,7 +50,6 @@ class Player {
     this.activeCoin.currentPosition = currPos + 1;
     this.activeCoin.x = this.playerPath[currPos].x;
     this.activeCoin.y = this.playerPath[currPos].y;
-
     this.visitedBoxs.push(this.playerPath[currPos]);
   }
 
@@ -116,14 +116,20 @@ class Player {
 }
 
 class Coin {
+  id = this.randomNumber(1, 100);
   x = 0;
   y = 0;
-  currentPosition: number = -1;
+  currentPosition: number = 0;
   color: string = "";
 
   constructor(_initalPos: any, _color) {
     this.x = _initalPos.x;
     this.y = _initalPos.y;
     this.color = _color;
+  }
+
+  randomNumber(min, max) {
+    // min and max included
+    return Math.floor(Math.random() * (max - min + 1) + min);
   }
 }

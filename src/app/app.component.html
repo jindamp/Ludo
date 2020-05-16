@@ -97,6 +97,16 @@
     height: 125px;
     transform: translate(210px, 210px);
   }
+
+  .blink {
+    animation: blinker 1s linear infinite;
+  }
+
+  @keyframes blinker {
+    50% {
+      opacity: 0;
+    }
+  }
 </style>
 
 <div>
@@ -106,22 +116,38 @@
 
   <div style="display: flex; align-items: center;">
     <button (click)="killAnimation()">Kill</button>
-    <button style="margin-left: 25px;" (click)="rollDice()">Roll Dice</button>
+    <button
+      [disabled]="!board.isDiceActive"
+      style="margin-left: 25px;"
+      (click)="rollDice()"
+    >
+      Roll Dice
+    </button>
     <h3 style="margin-left: 25px;">{{ board.dice }}</h3>
   </div>
 
   <div style="position: relative;">
-    <div
-      *ngFor="let coin of coins; index as i"
-      class="coin"
-      [style.background-color]="coin.color"
-      [style.transform]="getCoinXYPosition(coin)"
-    >
-      C
+    <div *ngFor="let coin of playerCoins; index as i">
+      <div
+        *ngFor="let c of coin; index as j"
+        class="coin"
+        [ngClass]="{ blink: i + 1 === activePlayer.id && activePlayer.active }"
+        [style.background-color]="c.color"
+        [style.transform]="getCoinXYPosition(c)"
+        (click)="onCoinClick(c)"
+      >
+        C
+      </div>
     </div>
 
-    <div class="home1" style="position: absolute;">
-      <div class="innerHome"></div>
+    <div
+      class="home1"
+      [ngClass]="{ blink2: activePlayer.id === 1 && activePlayer.active }"
+      style="position: absolute;"
+    >
+      <div>
+        <div class="innerHome"></div>
+      </div>
     </div>
     <div class="home2" style="position: absolute;">
       <div class="innerHome"></div>
@@ -141,11 +167,13 @@
           *ngFor="let x of board.xplane; index as j"
           [attr.id]="x + ':' + y"
           [ngClass]="drawHomes(x, y)"
-          [style.background-color]="drawHomes(x, y)"
         >
           {{ x }} {{ y }}
         </div>
       </div>
+    </div>
+    <div style="height: 100px; width: 100px; background-color: indigo;">
+      <dice></dice>
     </div>
   </div>
 </div>
